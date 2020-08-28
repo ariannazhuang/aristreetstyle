@@ -1,8 +1,9 @@
 import sqlite3
 import time
+import pandas as pd 
 
 # database name to be passed as parameter 
-conn = sqlite3.connect('stylist.db')
+conn = sqlite3.connect('stylistv2.db')
 c = conn.cursor()
 
 # Create new table with ID as an integer and primary key and Name as a varchar
@@ -23,7 +24,7 @@ c.execute("INSERT INTO items (item_category,style, color, brand, season, tempera
 #Insert Weather
 from pyowm.owm import OWM
 owm = OWM('0cd868497ee607acfbe7c6d23f18d414')
-city=input('Enter City Name')
+city=input('Enter the city you are in: ')
 mgr = owm.weather_manager()
 weather = mgr.weather_at_place(city).weather
 temp_dict_kelvin = weather.temperature()   # a dict in Kelvin units (default when no temperature units provided)
@@ -34,11 +35,20 @@ temp_dict_fahrenheit = weather.temperature('fahrenheit')  # a dict in Fahrenheit
 c.execute("INSERT INTO weather (date, city, temperature, temperature_feel_like) VALUES (?, ?, ?, ?)",
          (time.time(), city, temp_dict_fahrenheit['temp'], temp_dict_fahrenheit['feels_like']))
 
-Commit
+#Commit
 conn.commit()
 
-cursor = conn.execute("SELECT * FROM weather")
-for row in cursor:
-    print(row)
+conn = sqlite3.connect('stylistv2.db')
+rs = conn.execute('''SELECT datetime(date,'unixepoch') as time, temperature_feel_like FROM weather order by date DESC LIMIT 1''')
+df = pd.DataFrame(rs.fetchall())
+i = df[1]
+print(i)
 
+cursor = conn.cursor()
+query = 'select id, case when 75 >=temperature_min and 75 <=temperature_max THEN TRUE ELSE FALSE END from items'
+cursor.execute(query)
+for row in cursor:
+    if row[1] == 1:
+        print(row[0])
+        
 conn.close()
